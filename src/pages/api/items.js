@@ -11,21 +11,45 @@ export default async function handler(req, res) {
     });
   }
 
-  const { cursor, limit = 20, type } = req.query;
+  let { cursor, limit = 20, type, search, orderBy } = req.query;
   const parsedLimit = parseInt(limit, 10);
+
+  if (type || search || orderBy) {
+    cursor = ''
+  }
 
   let query = '';
   let params = [];
 
   if (type && ['people', 'events', 'places'].includes(type)) {
+    let orderByClause = 'id ASC';
+    if (orderBy === 'name') {
+      orderByClause = 'name ASC';
+    } else if (orderBy === 'created_at') {
+      orderByClause = 'id ASC'; // Assuming id is the auto-incrementing primary key
+    } else if (orderBy === 'random') {
+      orderByClause = 'RANDOM()';
+    }
+
     query = `
       SELECT *, '${type}' as item_type FROM ${type}
       WHERE id > ?
-      ORDER BY id ASC
+      AND name LIKE ?
+      ORDER BY ${orderByClause}
       LIMIT ?
     `;
-    params = [cursor || 0, parsedLimit];
+
+    params = [cursor || 0, `%${search || ''}%`, parsedLimit];
   } else {
+    let orderByClause = 'id ASC';
+    if (orderBy === 'name') {
+      orderByClause = 'name ASC';
+    } else if (orderBy === 'created_at') {
+      orderByClause = 'id ASC'; // Assuming id is the auto-incrementing primary key
+    } else if (orderBy === 'random') {
+      orderByClause = 'RANDOM()';
+    }
+
     query = `
       SELECT 
         id, 
@@ -39,9 +63,8 @@ export default async function handler(req, res) {
         'people' as item_type
       FROM people
       WHERE id > ?
-      
+      AND name LIKE ?
       UNION ALL
-      
       SELECT 
         id, 
         name,
@@ -54,9 +77,8 @@ export default async function handler(req, res) {
         'events' as item_type
       FROM events
       WHERE id > ?
-      
+      AND name LIKE ?
       UNION ALL
-      
       SELECT 
         id, 
         name,
@@ -69,11 +91,11 @@ export default async function handler(req, res) {
         'places' as item_type
       FROM places
       WHERE id > ?
-      
-      ORDER BY id ASC
+      AND name LIKE ?
+      ORDER BY ${orderByClause}
       LIMIT ?
     `;
-    params = [cursor || 0, cursor || 0, cursor || 0, parsedLimit];
+    params = [cursor || 0, `%${search || ''}%`, cursor || 0, `%${search || ''}%`, cursor || 0, `%${search || ''}%`, parsedLimit];
   }
 
   const items = await db.all(query, params);

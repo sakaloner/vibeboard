@@ -1,14 +1,23 @@
-function CheckBox({ label, onFilter }) {
+function CheckBox({ label, value, onFilter, checkedOption, setCheckedOption }) {
     return (
         <div>
-            <input
-                type="checkbox"
-                onClick={() => {
-                    if (onFilter) onFilter(label);
-                }}
-                className="mr-2"
-            />
-            <label>{label}</label>
+            <label>
+                <input
+                    type="checkbox"
+                    checked={checkedOption === value}
+                    className="mr-2"
+                    onClick={() => {
+                        if (checkedOption === value) {
+                            setCheckedOption(null); 
+                            onFilter(null);
+                        } else {
+                            setCheckedOption(value);
+                            onFilter(value);
+                        }
+                    }}
+                />
+                {label}
+            </label>
         </div>
     );
 }
